@@ -23,11 +23,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // スコア用
     var score = 0  // ←追加
-    var itemScore = 0
     var scoreLabelNode:SKLabelNode!    // ←追加
     var bestScoreLabelNode:SKLabelNode!    // ←追加
-    var itemScoreLabelNode:SKLabelNode!
     let userDefaults:UserDefaults = UserDefaults.standard
+    
+    //アイテムスコア用
+    var itemScore = 0
+    var itemScoreLabelNode:SKLabelNode!
     
     // SKView上にシーンが表示されたときに呼ばれるメソッド
     override func didMove(to view: SKView) {
@@ -45,8 +47,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // 壁用のノード
         wallNode = SKNode()   // 追加
-        itemNode = SKNode()   // 追加
         scrollNode.addChild(wallNode)   // 追加
+        
+        // アイテム用のノード
+        itemNode = SKNode()   // 追加
         scrollNode.addChild(itemNode)   // 追加
         
         // 各種スプライトを生成する処理をメソッドに分割
@@ -342,56 +346,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         itemNode.run(repeatForeverAnimation)
     }
     
-    // SKPhysicsContactDelegateのメソッド。衝突したときに呼ばれる
-    func didBegin(_ contact: SKPhysicsContact) {
-        // ゲームオーバーのときは何もしない
-        if scrollNode.speed <= 0 {
-            return
-        }
-        
-        if (contact.bodyA.categoryBitMask & scoreCategory) == scoreCategory || (contact.bodyB.categoryBitMask & scoreCategory) == scoreCategory {
-            // スコアカウント用の透明な壁と衝突した
-            print("ScoreUp")
-            score += 1
-            scoreLabelNode.text = "Score:\(score)"
-            
-            // ベストスコア更新か確認する --- ここから ---
-            var bestScore = userDefaults.integer(forKey: "BEST")
-            if score > bestScore {
-                bestScore = score
-                bestScoreLabelNode.text = "Best Score:\(bestScore)"    // ←追加
-                userDefaults.set(bestScore, forKey: "BEST")
-                userDefaults.synchronize()
-            }
-        } else if (contact.bodyA.categoryBitMask & itemCategory) == itemCategory || (contact.bodyB.categoryBitMask & itemCategory) == itemCategory {
-            print("ItemUp")
-            contact.bodyA.node?.removeFromParent()
-            itemScore += 1
-            itemScoreLabelNode.text = "Item:\(itemScore)"
-            
-            // 再生データの作成
-            let mySoundAction: SKAction = SKAction.playSoundFileNamed("collision.mp3", waitForCompletion: true)
-            // 再生アクション
-            self.run(mySoundAction)
-            
-        } else {
-            // 壁か地面と衝突した
-            print("GameOver")
-            
-            // スクロールを停止させる
-            scrollNode.speed = 0
-            
-            // 衝突後は地面と反発するのみとする(リスタートするまで壁と反発させない)
-            bird.physicsBody?.collisionBitMask = groundCategory
-            
-            // 衝突後1秒間、鳥をくるくる回転させる
-            let roll = SKAction.rotate(byAngle: CGFloat(Double.pi) * CGFloat(bird.position.y) * 0.01, duration:1)
-            bird.run(roll, completion:{
-                self.bird.speed = 0
-            })
-        }
-    }
-    
     func setupScoreLabel() {
         // スコア表示を作成
         score = 0
@@ -424,12 +378,62 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.addChild(itemScoreLabelNode)
     }
     
+    // SKPhysicsContactDelegateのメソッド。衝突したときに呼ばれる
+    func didBegin(_ contact: SKPhysicsContact) {
+        // ゲームオーバーのときは何もしない
+        if scrollNode.speed <= 0 {
+            return
+        }
+        
+        if (contact.bodyA.categoryBitMask & scoreCategory) == scoreCategory || (contact.bodyB.categoryBitMask & scoreCategory) == scoreCategory {
+            // スコアカウント用の透明な壁と衝突した
+            print("ScoreUp")
+            score += 1
+            scoreLabelNode.text = "Score:\(score)"
+            
+            // ベストスコア更新か確認する --- ここから ---
+            var bestScore = userDefaults.integer(forKey: "BEST")
+            if score > bestScore {
+                bestScore = score
+                bestScoreLabelNode.text = "Best Score:\(bestScore)"    // ←追加
+                userDefaults.set(bestScore, forKey: "BEST")
+                userDefaults.synchronize()
+            }
+        } else if (contact.bodyA.categoryBitMask & itemCategory) == itemCategory || (contact.bodyB.categoryBitMask & itemCategory) == itemCategory {
+            print("ItemScoreUp")
+            contact.bodyA.node?.removeFromParent()
+            itemScore += 1
+            itemScoreLabelNode.text = "Item:\(itemScore)"
+            
+            // 再生データの作成
+            let mySoundAction: SKAction = SKAction.playSoundFileNamed("collision.mp3", waitForCompletion: true)
+            // 再生アクション
+            self.run(mySoundAction)
+            
+        } else {
+            // 壁か地面と衝突した
+            print("GameOver")
+            
+            // スクロールを停止させる
+            scrollNode.speed = 0
+            
+            // 衝突後は地面と反発するのみとする(リスタートするまで壁と反発させない)
+            bird.physicsBody?.collisionBitMask = groundCategory
+            
+            // 衝突後1秒間、鳥をくるくる回転させる
+            let roll = SKAction.rotate(byAngle: CGFloat(Double.pi) * CGFloat(bird.position.y) * 0.01, duration:1)
+            bird.run(roll, completion:{
+                self.bird.speed = 0
+            })
+        }
+    }
+    
     func restart() {
         // スコアを0にする
         score = 0
         scoreLabelNode.text = "Score:\(score)"
         itemScore = 0
-        itemScoreLabelNode.text = "Item:\(itemScore)"
+        itemScoreLabelNode.text = "Item Score:\(itemScore)"
         
         // 鳥を初期位置に戻し、壁と地面の両方に反発するように戻す
         bird.position = CGPoint(x: self.frame.size.width * 0.2, y:self.frame.size.height * 0.7)
