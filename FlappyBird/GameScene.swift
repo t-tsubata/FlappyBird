@@ -31,6 +31,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var itemScore = 0
     var itemScoreLabelNode:SKLabelNode!
     
+    // 再生データの作成
+    let soundAction: SKAction = SKAction.playSoundFileNamed("collision.mp3", waitForCompletion: true)
+    
     // SKView上にシーンが表示されたときに呼ばれるメソッド
     override func didMove(to view: SKView) {
         
@@ -405,10 +408,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             itemScore += 1
             itemScoreLabelNode.text = "Item:\(itemScore)"
             
-            // 再生データの作成
-            let mySoundAction: SKAction = SKAction.playSoundFileNamed("collision.mp3", waitForCompletion: true)
             // 再生アクション
-            self.run(mySoundAction)
+            self.run(soundAction)
             
         } else {
             // 壁か地面と衝突した
